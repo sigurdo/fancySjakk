@@ -7,6 +7,7 @@ class PieceRenderer:
     sizePrefix = "storrelse_"
 
     pieceToFilePathMap = {
+        " ": "tom.txt",
         "r": "spiller_sort/tarn.txt",
         "n": "spiller_sort/hest.txt",
         "b": "spiller_sort/surpomp.txt",
@@ -24,21 +25,16 @@ class PieceRenderer:
     def __init__(self, cellWidth, cellHeight):
         self.cellWidth = cellWidth
         self.cellHeight = cellHeight
-        availablePieceSizes = self.findPieceSizes("r")
-        bestSize = self.findBestPieceSize("r")
-        # self.pieceSize = 
-
-        print(bestSize)
-        print(self.stripDrawing(self.renderPieceRaw("r")))
-        print(self.renderBottomBlack())
-        print(self.renderBottomWhite())
-        print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("r")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
-        print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("R")), self.renderBottomWhite(), vOffset=1, hOffset=6, hSafezone=2))
-        print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("N")), self.renderBottomWhite(), vOffset=2, hOffset=4, hSafezone=2))
-        print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("q")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
-        print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("k")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
-        print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("p")), self.renderBottomWhite(), vOffset=1, hOffset=-4, hSafezone=2))
-        return
+    
+    def testMe(self):
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("r")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("R")), self.renderBottomWhite(), vOffset=1, hOffset=6, hSafezone=2))
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("N")), self.renderBottomWhite(), vOffset=2, hOffset=4, hSafezone=2))
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("q")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("k")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("p")), self.renderBottomWhite(), vOffset=1, hOffset=-4, hSafezone=2))
+        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw(" ")), self.renderBottomWhite(), vOffset=-2, hOffset=-2, hSafezone=4))
+        print(self.renderPiece("r", "black"))
     
     # Loops the piece base path and returns recognized sizes in a set of (width, height) tuples
     def findPieceSizes(self, piece):
@@ -74,6 +70,8 @@ class PieceRenderer:
     
     def getContentBorders(self, line):
         content = line.strip(" ")
+        if len(content) == 0:
+            return 0, 0
         start = line.index(content[0])
         end = len(line) - 1 - line[::-1].index(content[len(content) - 1])
         return start, end
@@ -103,7 +101,6 @@ class PieceRenderer:
         maxEnd = None
         for line in lines:
             start, end = self.getContentBorders(line)
-            print(start, end)
             if minStart == None or start < minStart:
                 minStart = start
             if maxEnd == None or end > maxEnd:
@@ -121,6 +118,9 @@ class PieceRenderer:
     def addDrawingToBottom(self, drawing, bottom, vOffset=0, hOffset=0, hSafezone=0):
         lines = bottom.split("\n")
         drawingLines = drawing.split("\n")
+
+        if drawingLines == [""]:
+            drawingLines = []
 
         for i in range(min(len(drawingLines), len(lines) - vOffset)):
             if vOffset + i < 0:
@@ -167,4 +167,15 @@ class PieceRenderer:
     def renderPiece(self, piece, bottomColor):
         raw = self.renderPieceRaw(piece)
         stripped = self.stripDrawing(raw)
-        return self.read
+
+        if stripped == "":
+            width, height = 0, 0
+        else:
+            temp = stripped.split("\n")
+            width, height = len(temp[0]), len(temp)
+        
+        hOffset = (self.cellWidth - width) // 2
+        vOffset = self.cellHeight - height
+
+        cell = self.addDrawingToBottom(stripped, self.renderBottomWhite() if bottomColor == "white" else self.renderBottomBlack(), hSafezone=1, hOffset=hOffset, vOffset=vOffset)
+        return cell
