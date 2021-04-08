@@ -2,20 +2,14 @@ import urwid
 import argparse
 import pyfiglet
 import PieceRenderer
+import stockfish
+from importSettings import settings
 
 parser = argparse.ArgumentParser(description="Fancy sjakk")
 # parser.add_argument("--dahlspath", metavar="dahlspath", type=str, default="dahls.txt")
 args = parser.parse_args()
 
-# Using FEN notaton for each piece 
-boardMatrix = [['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
-         ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
-         [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-         [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-         [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-         [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-         ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
-         ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']]
+startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 def readTxtFile(filepath):
     with open(filepath, "r") as file:
@@ -41,13 +35,13 @@ class BoardDrawer:
                 field.set_text(tomTxtW if (i + j) % 2 == 0 else tomTxtB)
 
                 self.pieceTextWidgets[i].append(field)
-        
+
         # Create letter widgets
         for i in range(1, 9):
             text = pyfiglet.Figlet().renderText(chr(0x40 + i))
             textWid = urwid.Text(text, align="center")
             self.letterTextWidgets.append(textWid)
-        
+
         # Create number widgets
         for i in range(8, 0, -1):
             text = pyfiglet.Figlet().renderText(str(i))
@@ -67,24 +61,74 @@ class BoardDrawer:
         numberRow.right = 16
         widgetRows.append(numberRow)
         widgetRows.insert(0, numberRow)
-        
+
         self.topWidget = urwid.Pile(widgetRows)
         self.topWidget = urwid.Padding(self.topWidget, width=16 * 10)
         self.topWidget = urwid.Filler(self.topWidget)
-        
-        self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input)
-        self.loop.run()
-    
-    def unhandled_input(self, key):
-        if key == "t":
-            self.setPieces(boardMatrix)
-            return
-        raise urwid.ExitMainLoop()
 
-    def setPieces(self, boardMatrix):
+    # Takes in a FEN-string and returns a boardMatrix on the following format:
+    # (yes this convertion looses some information about the game that is not relevant for drawing the board)
+    # [['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+    #  ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+    #  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    #  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    #  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    #  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    #  ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+    #  ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']]
+    def getBoardMatrixFromFen(self, fen):
+        exception = Exception(f"FEN-string is not valid: {fen}")
+        rows = fen.strip(" ").split(" ")[0].split("/")
+        boardMatrix = []
+        for row in rows:
+            toAppend = []
+            for char in row:
+                if char in [str(n) for n in range(1, 9)]:
+                    toAppend += [" " for i in range(int(char))]
+                elif char in ["r", "n", "b", "q", "k", "p", "R", "N", "B", "Q", "K", "P"]:
+                    toAppend.append(char)
+                else:
+                    raise exception
+            if len(toAppend) != 8:
+                raise exception
+            boardMatrix.append(toAppend)
+        if len(boardMatrix) != 8:
+            raise exception
+        return boardMatrix
+
+    def setPieces(self, fen):
+        boardMatrix = self.getBoardMatrixFromFen(fen)
         for i in range(8):
             for j in range(8):
                 text = self.pieceRenderer.renderPiece(boardMatrix[i][j], "white" if (i + j) % 2 == 0 else "black")
                 self.pieceTextWidgets[i][j].set_text(text)
 
-boardDrawer = BoardDrawer()
+class ChessGame:
+    def __init__(self):
+        self.boardDrawer = BoardDrawer()
+        self.stockfish = stockfish.Stockfish(settings.stockfishPath)
+        self.topWidget = urwid.Filler(self.boardDrawer.topWidget, height=("relative", 100))
+        self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input)
+
+    def start(self):
+        self.loop.run()
+
+    def testing(self):
+        self.stockfish.set_position(["e2e4", "e7e6"])
+        print(self.stockfish.get_board_visual())
+        print(self.stockfish.get_fen_position())
+        self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+
+    def unhandled_input(self, key):
+        if key == "s":
+            self.boardDrawer.setPieces(startFen)
+            return
+        if key == "t":
+            self.stockfish.set_position(["e2e4", "e7e6"])
+            self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+            return
+        raise urwid.ExitMainLoop()
+
+chessGame = ChessGame()
+chessGame.start()
+chessGame.testing()
