@@ -1,5 +1,6 @@
 
 import os
+import generalFunctions
 
 class PieceRenderer:
     pieceBasePath = "ressurser/brikker/"
@@ -60,14 +61,6 @@ class PieceRenderer:
                 maxFittingSize = (width, height)
         return maxFittingSize
     
-    def joinListToString(self, listToJoin, sep=""):
-        res = ""
-        for item in listToJoin:
-            if res != "":
-                res += sep
-            res += item
-        return res
-    
     def getContentBorders(self, line):
         content = line.strip(" ")
         if len(content) == 0:
@@ -111,7 +104,7 @@ class PieceRenderer:
             lines[i] = line[minStart:maxEnd + 1]
 
         # Reassemble drawing
-        drawing = self.joinListToString(lines, sep="\n")
+        drawing = generalFunctions.joinListToString(lines, sep="\n")
         
         return drawing
     
@@ -131,7 +124,7 @@ class PieceRenderer:
             lines[vOffset + i] = line[:max(hOffset + start - hSafezone, 0)] + " " * hSafezone + drawingLine[max(start,-hOffset):end + 1] + " " * hSafezone + line[hOffset + end + 1 + hSafezone:]
             lines[vOffset + i] = lines[vOffset + i][:len(line)]
 
-        return self.joinListToString(lines, sep="\n")
+        return generalFunctions.joinListToString(lines, sep="\n")
     
     def renderBottomWhite(self):
         res = ""

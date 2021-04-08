@@ -1,10 +1,12 @@
 import urwid
+import urwid.curses_display
 import argparse
 import pyfiglet
 import PieceRenderer
 import stockfish
 from importSettings import settings
 import time
+import generalFunctions
 
 parser = argparse.ArgumentParser(description="Fancy sjakk")
 # parser.add_argument("--dahlspath", metavar="dahlspath", type=str, default="dahls.txt")
@@ -109,14 +111,31 @@ class ChessGame:
 
     def __init__(self):
         self.stockfish = stockfish.Stockfish(settings.stockfishPath)
+
         self.boardDrawer = BoardDrawer()
         self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+
         self.inputWidget = urwid.Edit(caption=">", edit_text="")
-        inputFiller = urwid.Filler(self.inputWidget)
+        inputContainer = self.inputWidget
+        inputContainer = urwid.LineBox(inputContainer)
+        inputContainer = urwid.Filler(inputContainer, valign="top")
+        # inputContainer = urwid.Padding(inputContainer, align="center", width=30)
+
         urwid.connect_signal(self.inputWidget, "change", self.userInputKeystroke)
-        columns = urwid.Columns([(10 * 16, self.boardDrawer.topWidget), inputFiller], )
+
+        self.logWidget = urwid.Text("")
+        logContainer = self.logWidget
+        logContainer = urwid.LineBox(logContainer)
+        logContainer = urwid.Filler(logContainer, valign="bottom")
+        # logContainer = urwid.
+
+        logInputPile = urwid.Pile([logContainer, inputContainer])
+        logInputPile = urwid.Padding(logInputPile, align="center", width=30)
+
+        columns = urwid.Columns([(10 * 16, self.boardDrawer.topWidget), logInputPile])
         self.topWidget = urwid.Filler(columns, height=("relative", 100))
-        self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input)
+
+        self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input, screen=urwid.curses_display.Screen())
 
     def start(self):
         self.loop.run()
@@ -149,11 +168,13 @@ class ChessGame:
             raise urwid.ExitMainLoop()
         if self.stockfish.is_move_correct(inputText):
             self.log.append(inputText)
+            self.logWidget.set_text(generalFunctions.joinListToString(self.log, sep="\n"))
             self.stockfish.set_position(self.log)
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
             self.loop.draw_screen()
             time.sleep(0.2)
             self.log.append(self.stockfish.get_best_move())
+            self.logWidget.set_text(generalFunctions.joinListToString(self.log, sep="\n"))
             self.stockfish.set_position(self.log)
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
             self.inputWidget.set_edit_text("")
@@ -165,4 +186,4 @@ class ChessGame:
 
 chessGame = ChessGame()
 chessGame.start()
-chessGame.testing()
+# chessGame.testing()
