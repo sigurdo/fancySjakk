@@ -4,6 +4,7 @@ import pyfiglet
 import PieceRenderer
 import stockfish
 from importSettings import settings
+import time
 
 parser = argparse.ArgumentParser(description="Fancy sjakk")
 # parser.add_argument("--dahlspath", metavar="dahlspath", type=str, default="dahls.txt")
@@ -104,10 +105,17 @@ class BoardDrawer:
                 self.pieceTextWidgets[i][j].set_text(text)
 
 class ChessGame:
+    log = []
+
     def __init__(self):
-        self.boardDrawer = BoardDrawer()
         self.stockfish = stockfish.Stockfish(settings.stockfishPath)
-        self.topWidget = urwid.Filler(self.boardDrawer.topWidget, height=("relative", 100))
+        self.boardDrawer = BoardDrawer()
+        self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+        self.inputWidget = urwid.Edit(caption=">", edit_text="")
+        inputFiller = urwid.Filler(self.inputWidget)
+        urwid.connect_signal(self.inputWidget, "change", self.userInputKeystroke)
+        columns = urwid.Columns([(10 * 16, self.boardDrawer.topWidget), inputFiller], )
+        self.topWidget = urwid.Filler(columns, height=("relative", 100))
         self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input)
 
     def start(self):
@@ -120,6 +128,8 @@ class ChessGame:
         self.boardDrawer.setPieces(self.stockfish.get_fen_position())
 
     def unhandled_input(self, key):
+        if key == "q":
+            raise urwid.ExitMainLoop()
         if key == "s":
             self.boardDrawer.setPieces(startFen)
             return
@@ -127,7 +137,31 @@ class ChessGame:
             self.stockfish.set_position(["e2e4", "e7e6"])
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
             return
-        raise urwid.ExitMainLoop()
+        if key == "enter":
+            self.userInputEnter()
+            return
+        # for i in range(100):
+        #     print("unhandled input:", key)
+    
+    def userInputEnter(self):
+        inputText = self.inputWidget.get_edit_text()
+        if inputText == "q":
+            raise urwid.ExitMainLoop()
+        if self.stockfish.is_move_correct(inputText):
+            self.log.append(inputText)
+            self.stockfish.set_position(self.log)
+            self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+            self.loop.draw_screen()
+            time.sleep(0.2)
+            self.log.append(self.stockfish.get_best_move())
+            self.stockfish.set_position(self.log)
+            self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+            self.inputWidget.set_edit_text("")
+
+    def userInputKeystroke(self, widget, text):
+        # self.stockfish.set_position([text])
+        # self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+        pass
 
 chessGame = ChessGame()
 chessGame.start()
