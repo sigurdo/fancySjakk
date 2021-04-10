@@ -55,6 +55,10 @@ class ChessGame:
         print(self.stockfish.get_fen_position())
         self.boardDrawer.setPieces(self.stockfish.get_fen_position())
         print(algebraicNotation.algToUci("e4", startFen, self.stockfish))
+        fen = "rnbqkbnr/ppppppPp/8/p7/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        self.stockfish.set_fen_position(fen)
+        print(self.stockfish.get_board_visual())
+        print(algebraicNotation.algToUci("xh8=Q", fen, self.stockfish))
 
     def unhandled_input(self, key):
         if key == "q":
@@ -72,6 +76,16 @@ class ChessGame:
         # for i in range(100):
         #     print("unhandled input:", key)
     
+    # Uses self.log to set correct contents of self.logWidget
+    def updateLogWidget(self):
+        algLog = []
+        for i, move in enumerate(self.log):
+            self.stockfish.set_position(self.log[:i])
+            fen = self.stockfish.get_fen_position()
+            algLog.append(algebraicNotation.uciToAlg(move, fen, self.stockfish))
+        self.logWidget.set_text(generalFunctions.joinListToString(algLog, sep="\n"))
+
+    
     def userInputEnter(self):
         inputText = self.inputWidget.get_edit_text()
         if inputText == "q":
@@ -82,15 +96,15 @@ class ChessGame:
         except:
             move = inputText
 
-        if self.stockfish.is_move_correct(move):
+        if move != "" and self.stockfish.is_move_correct(move):
             self.log.append(move)
-            self.logWidget.set_text(generalFunctions.joinListToString(self.log, sep="\n"))
+            self.updateLogWidget()
             self.stockfish.set_position(self.log)
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
             self.loop.draw_screen()
             time.sleep(0.2)
-            self.log.append(self.stockfish.get_best_move())
-            self.logWidget.set_text(generalFunctions.joinListToString(self.log, sep="\n"))
+            # self.log.append(self.stockfish.get_best_move())
+            self.updateLogWidget()
             self.stockfish.set_position(self.log)
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
             self.inputWidget.set_edit_text("")

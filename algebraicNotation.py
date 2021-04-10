@@ -1,5 +1,6 @@
 import generalFunctions
 import fenReader
+import numpy as np
 
 # Arguments:
 # - pieceType - color does not matter
@@ -19,6 +20,8 @@ def findPieceTo(pieceType, toCol, toRow, fen, stockfish, fromCol=0, fromRow=0):
     piece = pieceType.upper() if player == "w" else pieceType.lower()
     rows = ["8", "7", "6", "5", "4", "3", "2", "1"]
     cols = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    toRowNr = rows.index(toRow)
+    toColNr = cols.index(toCol)
 
     possibleFroms = []
     for row in rows:
@@ -28,10 +31,12 @@ def findPieceTo(pieceType, toCol, toRow, fen, stockfish, fromCol=0, fromRow=0):
             rowNr = rows.index(row)
             colNr = cols.index(col)
             if (boardMatrix[rowNr][colNr] == piece):
-                stockfish.set_fen_position(fen)
                 # print(f"{col}{row}{toCol}{toRow}")
-                if stockfish.is_move_correct(f"{col}{row}{toCol}{toRow}"):
+                try:
+                    indicesToUci(rowNr, colNr, toRowNr, toColNr, fen, stockfish)
                     possibleFroms.append((col, row))
+                except Exception:
+                    pass
 
     if (len(possibleFroms) > 1): raise Exception(f'Move is ambigous: {pieceType}{fromCol}{fromRow}{toCol}{toRow}')
 
@@ -128,4 +133,98 @@ def algToUci(algebraic, fen, stockfish):
         fromRow=move["fromRow"], fromCol=move["fromCol"])
 
     return f'{move["fromCol"]}{move["fromRow"]}{move["toCol"]}{move["toRow"]}{"" if move["promotion"] == 0 else move["promotion"].lower()}'
-    # return whateverTilTall(move["fraRad"]), whateverTilTall(move["fraKol"]), whateverTilTall(move["tilRad"]), whateverTilTall(move["tilKol"]), None if not move["promotion"] else promotionMap[q][move["promotion"].lower()]
+
+# Arguments:
+# - rowNr     - index in board matrix of row to move from, one of 0, 1, 2, 3, 4, 5, 6, 7
+# - colNr     - index in board matrix of col to move from, one of 0, 1, 2, 3, 4, 5, 6, 7
+# - toRowNr   - index in board matrix of row to move to,   one of 0, 1, 2, 3, 4, 5, 6, 7
+# - toColNr   - index in board matrix of col to move to,   one of 0, 1, 2, 3, 4, 5, 6, 7
+# - fen       - fen position of board before performing move
+# - stockfish - stockfish.Stockfish instance
+# - preferredPromotion="q" - if promotion is available promote to this piece type, one of "q", "r", "b", "n"
+#
+# Returns:
+# - uci - uci notation for the move f ex "d3d6"
+#
+# Exceptions:
+# - Raises Exception if attempted move is illegal, so no need to check additionally
+def indicesToUci(rowNr, colNr, toRowNr, toColNr, fen, stockfish, preferrdPromotion="q"):
+    cols = ["a", "b", "c", "d", "e", "f", "g", "h"]
+    rows = ["8", "7", "6", "5", "4", "3", "2", "1"]
+    move = f'{cols[colNr]}{rows[rowNr]}{cols[toColNr]}{rows[toRowNr]}'
+    stockfish.set_fen_position(fen)
+    if not stockfish.is_move_correct(move):
+        move += preferrdPromotion
+        if not stockfish.is_move_correct(move):
+            raise Exception(f'Move is illegal: {move}')
+    return move
+
+# Arguments:
+# - uci - uci notation for the move f ex "d3d6"
+# - fen - fen position of board before performing move
+# - stockfish - stockfish.Stockfish instance
+#
+# Returns:
+# - algebraic - algebraic notaion for the move, f ex "Rxd6"
+#
+# NOTE: One big downside with this function is that it does not add + and # at the end for checks and checkmates, because I could not find
+# a single way to determine that by using stockfish, so I will more or less have to code my own engine, and that is a lot of work
+def uciToAlg(uci, fen, stockfish):
+    rows = ["8", "7", "6", "5", "4", "3", "2", "1"]
+    cols = ["a", "b", "c", "d", "e", "f", "g", "h"]
+
+    stockfish.set_fen_position(fen)
+    if not stockfish.is_move_correct(uci):
+        raise Exception(f'Move is not valid: {uci}')
+
+    boardMatrix = fenReader.getBoardMatrix(fen)
+    move = {
+        "player": 0,
+        "pieceType": 0,
+        "fromCol": 0,
+        "fremRow": 0,
+        "capture": 0,
+        "toCol": 0,
+        "toRow": 0,
+        "promotion": 0,
+        "check": 0,
+    }
+    move["player"] = fenReader.getPlayerInMove(fen)
+    move["fromCol"] = uci[0]
+    move["fromRow"] = uci[1]
+    move["toCol"] = uci[2]
+    move["toRow"] = uci[3]
+    fromColNr = cols.index(move["fromCol"])
+    fromRowNr = rows.index(move["fromRow"])
+    toColNr = cols.index(move["toCol"])
+    toRowNr = rows.index(move["toRow"])
+    move["pieceType"] = boardMatrix[fromRowNr][fromColNr].upper()
+    move["capture"] = "" if boardMatrix[toRowNr][toColNr] == " " else "x"
+    if len(uci) > 4:
+        move["promotion"] = uci[4].upper()
+
+    try:
+        findPieceTo(move["pieceType"], move["toCol"], move["toRow"], fen, stockfish)
+        specifyFrom = False
+    except:
+        specifyFrom = True
+
+    if move["pieceType"] == "K" and move["fromCol"] == "e" and move["toCol"] == "g": return "0-0"
+    elif move["pieceType"] == "K" and move["fromCol"] == "e" and move["toCol"] == "c": return "0-0-0"
+
+    algebraic = ""
+    if move["pieceType"] != "P":
+        algebraic += move["pieceType"]
+    if specifyFrom:
+        algebraic += move["fromCol"]
+        algebraic += move["fromRow"]
+    algebraic += move["capture"]
+    algebraic += move["toCol"]
+    algebraic += move["toRow"]
+    if move["promotion"]:    
+        algebraic += "="
+        algebraic += move["promotion"]
+    if move["check"]:
+        algebraic += move["check"]
+
+    return algebraic
