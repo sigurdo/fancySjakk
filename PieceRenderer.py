@@ -144,14 +144,10 @@ class PieceRenderer:
                 res += " "
         return res
     
-    def readTxtFile(self, filepath):
-        with open(filepath, "r") as file:
-            return file.read()
-    
     # Same as renderPiece, but without bottom color and size adjustments
     def renderPieceRaw(self, piece):
         bestWidth, bestHeight = self.findBestPieceSize(piece)
-        return self.readTxtFile(os.path.join(self.pieceBasePath, f"{self.sizePrefix}{bestWidth}x{bestHeight}", self.pieceToFilePathMap[piece]))
+        return generalFunctions.readTxtFile(os.path.join(self.pieceBasePath, f"{self.sizePrefix}{bestWidth}x{bestHeight}", self.pieceToFilePathMap[piece]))
     
     # Returns a rendered instance of the given piece on the given bottom color
     # Parameters:
