@@ -110,7 +110,6 @@ class Menu:
     def startGame(self, widget):
         game = ChessGame.ChessGame(self.loop.draw_screen, self.exitGame)
         self.loop.widget = game.topWidget
-        self.loop.unhandled_input = game.unhandled_input
 
 
 menu = Menu()

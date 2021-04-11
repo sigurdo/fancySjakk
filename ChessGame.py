@@ -10,6 +10,13 @@ import algebraicNotation
 
 startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
+# How to use:
+# Constructor accepts 2 arguments:
+# - drawScreen - function to call when a screen-redraw is needed
+# - extiGame - function to call when the game should be close
+#
+# Additional actions to activate the game:
+# - add instance.topWidget to somewhere on the screen, preferably loop.widget
 class ChessGame:
     log = []
 
@@ -22,13 +29,14 @@ class ChessGame:
         self.boardDrawer = BoardDrawer.BoardDrawer()
         self.boardDrawer.setPieces(self.stockfish.get_fen_position())
 
-        self.inputWidget = urwid.Edit(caption=">", edit_text="")
+        self.inputWidget = urwid.Edit(caption=">", edit_text="", multiline=True)
+        # self.inputWidget.keypress = self.inputKeypress
         inputContainer = self.inputWidget
         inputContainer = urwid.LineBox(inputContainer)
         inputContainer = urwid.Filler(inputContainer, valign="top")
         # inputContainer = urwid.Padding(inputContainer, align="center", width=30)
 
-        urwid.connect_signal(self.inputWidget, "change", self.userInputKeystroke)
+        urwid.connect_signal(self.inputWidget, "postchange", self.userInputKeystroke)
 
         self.logWidget = urwid.Text("")
         logContainer = self.logWidget
@@ -70,10 +78,15 @@ class ChessGame:
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
             return
         if key == "enter":
-            self.userInputEnter()
+            # self.userInputEnter()
             return
         # for i in range(100):
         #     print("unhandled input:", key)
+    
+    def inputKeypress(self, size, key):
+        if key == "enter":
+            self.userInputEnter()
+            return
     
     # Uses self.log to set correct contents of self.logWidget
     def updateLogWidget(self):
@@ -87,6 +100,9 @@ class ChessGame:
     
     def userInputEnter(self):
         inputText = self.inputWidget.get_edit_text()
+        if inputText.endswith("\n"):
+            # raise Exception([inputText])
+            inputText = inputText.split("\n")[0]
         if inputText == "q":
             # raise urwid.ExitMainLoop()
             self.exitGame()
@@ -101,15 +117,21 @@ class ChessGame:
             self.updateLogWidget()
             self.stockfish.set_position(self.log)
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+            self.inputWidget.set_edit_text("")
             self.drawScreen()
             time.sleep(0.2)
             self.log.append(self.stockfish.get_best_move())
             self.updateLogWidget()
             self.stockfish.set_position(self.log)
             self.boardDrawer.setPieces(self.stockfish.get_fen_position())
-            self.inputWidget.set_edit_text("")
+            # raise Exception("Hey")
+        else:
+            self.inputWidget.set_edit_text(inputText)
 
-    def userInputKeystroke(self, widget, text):
+    def userInputKeystroke(self, widget, oldText):
         # self.stockfish.set_position([text])
         # self.boardDrawer.setPieces(self.stockfish.get_fen_position())
+        newText = self.inputWidget.get_edit_text()
+        if newText.endswith("\n"):
+            self.userInputEnter()
         pass
