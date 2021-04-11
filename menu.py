@@ -5,6 +5,7 @@ import pyfiglet
 from importSettings import settings
 import time
 import generalFunctions
+import drawingTools
 
 parser = argparse.ArgumentParser(description="Fancy sjakk")
 # parser.add_argument("--dahlspath", metavar="dahlspath", type=str, default="dahls.txt")
@@ -13,61 +14,14 @@ args = parser.parse_args()
 class FigletButton(urwid.WidgetWrap):
     def __init__(self, label, onClick):
         self.label = label
-        self.figletText = pyfiglet.Figlet().renderText(self.label)
-        self.figletText = self.stripDrawing(self.figletText) + "\n"
+        self.figletText = pyfiglet.Figlet(font="smslant").renderText(self.label)
+        self.figletText = drawingTools.stripDrawing(self.figletText)
         # raise Exception(len(self.figletText.split("\n")))
         self.labelWidget = urwid.Text(self.figletText, align="center")
         self.labelWidget = urwid.AttrMap(self.labelWidget, "normal", "normal")
         self.widget = urwid.LineBox(self.labelWidget)
         self.hiddenButton = urwid.Button("this text should be invisible", onClick)
         super(FigletButton, self).__init__(self.widget)
-    
-    def getContentBorders(self, line):
-        content = line.strip(" ")
-        if len(content) == 0:
-            return 0, 0
-        start = line.index(content[0])
-        end = len(line) - 1 - line[::-1].index(content[len(content) - 1])
-        return start, end
-    
-    def stripDrawing(self, drawing):
-        # Deassemble drawing into list of lines
-        lines = drawing.split("\n")
-
-        # Strip empty lines from top and bottom
-        toDelete = set()
-        for i in range(len(lines)):
-            line = lines[i]
-            if line.strip(" ") != "":
-                break
-            toDelete.add(i)
-        for i in range(len(lines) - 1, -1, -1):
-            line = lines[i]
-            if line.strip(" ") != "":
-                break
-            toDelete.add(i)
-        # Note: This loop must be reversed, because if not, indexes will change as elements gets deleted
-        for i in reversed(list(toDelete)):
-            del lines[i]
-
-        # Find maximum and minimum horizontal positions for actual characters
-        minStart = None
-        maxEnd = None
-        for line in lines:
-            start, end = self.getContentBorders(line)
-            if minStart == None or start < minStart:
-                minStart = start
-            if maxEnd == None or end > maxEnd:
-                maxEnd = end
-        
-        # Strip anything outside these borders
-        for i, line in enumerate(lines):
-            lines[i] = line[minStart:maxEnd + 1]
-
-        # Reassemble drawing
-        drawing = generalFunctions.joinListToString(lines, sep="\n")
-        
-        return drawing
     
     def selectable(self):
         return True
@@ -84,17 +38,32 @@ class Menu:
             ("normal", "", ""),
             ("highlight", "black", "light gray"),
             ("highlightBorder", "dark red", "dark red"),
+            ("title", "", ""),
         ]
 
-        button1 = urwid.Button("hei")
+        button1 = urwid.Button("Start spill")
         button1 = urwid.AttrMap(button1, "normal", "highlight")
-        button2 = urwid.Button("yo")
+        button2 = urwid.Button("Hjelp")
         button2 = urwid.AttrMap(button2, "normal", "highlight")
-        button3 = FigletButton("Hmmj", self.userInputEnter)
-        button3 = urwid.AttrMap(button3, "normal", "highlightBorder")
+        # button3 = FigletButton("Hmmj", self.userInputEnter)
+        # button3 = urwid.AttrMap(button3, "normal", "highlightBorder")
+        button3 = urwid.Button("Avslutt")
+        button3 = urwid.AttrMap(button3, "normal", "highlight")
         pile = urwid.Pile([button1, button2, button3])
-        self.topWidget = urwid.Filler(pile)
-        self.topWidget = urwid.Padding(self.topWidget, width=40)
+        self.topWidget = urwid.Filler(pile, valign=urwid.TOP)
+        self.topWidget = urwid.Padding(self.topWidget, align=urwid.CENTER, width=40)
+
+        title = pyfiglet.Figlet(font="ogre", width=1000).renderText("fancyChess")
+        title = drawingTools.stripDrawing(title)
+        width = len(title.split("\n")[0])
+        # raise Exception(title)
+        title = urwid.Text(title)
+        title = urwid.AttrMap(title, "title")
+        title = urwid.Padding(title, width=width, align=urwid.CENTER)
+        title = urwid.Filler(title, valign=urwid.BOTTOM, bottom=1)
+
+        self.topWidget = urwid.Pile([("weight", 1, title), ("weight", 2, self.topWidget)])
+        # self.topWidget = urwid.Padding(self.topWidget, align=urwid.CENTER, width=80)
 
         self.loop = urwid.MainLoop(self.topWidget, palette=palette, unhandled_input=self.unhandled_input, screen=urwid.curses_display.Screen())
 

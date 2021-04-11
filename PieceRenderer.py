@@ -1,6 +1,7 @@
 
 import os
 import generalFunctions
+import drawingTools
 
 class PieceRenderer:
     pieceBasePath = "ressurser/brikker/"
@@ -28,13 +29,7 @@ class PieceRenderer:
         self.cellHeight = cellHeight
     
     def testMe(self):
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("r")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("R")), self.renderBottomWhite(), vOffset=1, hOffset=6, hSafezone=2))
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("N")), self.renderBottomWhite(), vOffset=2, hOffset=4, hSafezone=2))
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("q")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("k")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw("p")), self.renderBottomWhite(), vOffset=1, hOffset=-4, hSafezone=2))
-        # print(self.addDrawingToBottom(self.stripDrawing(self.renderPieceRaw(" ")), self.renderBottomWhite(), vOffset=-2, hOffset=-2, hSafezone=4))
+        # print(drawingTools.addDrawingToBottom(drawingTools.stripDrawing(self.renderPieceRaw("r")), self.renderBottomWhite(), vOffset=1, hOffset=4, hSafezone=2))
         print(self.renderPiece("r", "black"))
     
     # Loops the piece base path and returns recognized sizes in a set of (width, height) tuples
@@ -60,71 +55,6 @@ class PieceRenderer:
             if width <= self.cellWidth and height <= self.cellHeight and width >= maxFittingSize[0] and height >= maxFittingSize[1]:
                 maxFittingSize = (width, height)
         return maxFittingSize
-    
-    def getContentBorders(self, line):
-        content = line.strip(" ")
-        if len(content) == 0:
-            return 0, 0
-        start = line.index(content[0])
-        end = len(line) - 1 - line[::-1].index(content[len(content) - 1])
-        return start, end
-    
-    def stripDrawing(self, drawing):
-        # Deassemble drawing into list of lines
-        lines = drawing.split("\n")
-
-        # Strip empty lines from top and bottom
-        toDelete = set()
-        for i in range(len(lines)):
-            line = lines[i]
-            if line.strip(" ") != "":
-                break
-            toDelete.add(i)
-        for i in range(len(lines) - 1, -1, -1):
-            line = lines[i]
-            if line.strip(" ") != "":
-                break
-            toDelete.add(i)
-        # Note: This loop must be reversed, because if not, indexes will change as elements gets deleted
-        for i in reversed(list(toDelete)):
-            del lines[i]
-
-        # Find maximum and minimum horizontal positions for actual characters
-        minStart = None
-        maxEnd = None
-        for line in lines:
-            start, end = self.getContentBorders(line)
-            if minStart == None or start < minStart:
-                minStart = start
-            if maxEnd == None or end > maxEnd:
-                maxEnd = end
-        
-        # Strip anything outside these borders
-        for i, line in enumerate(lines):
-            lines[i] = line[minStart:maxEnd + 1]
-
-        # Reassemble drawing
-        drawing = generalFunctions.joinListToString(lines, sep="\n")
-        
-        return drawing
-    
-    def addDrawingToBottom(self, drawing, bottom, vOffset=0, hOffset=0, hSafezone=0):
-        lines = bottom.split("\n")
-        drawingLines = drawing.split("\n")
-
-        if drawingLines == [""]:
-            drawingLines = []
-
-        for i in range(min(len(drawingLines), len(lines) - vOffset)):
-            if vOffset + i < 0:
-                continue
-            line = lines[vOffset + i]
-            drawingLine = drawingLines[i]
-            start, end = self.getContentBorders(drawingLine)
-            lines[vOffset + i] = line[:max(hOffset + start - hSafezone, 0)] + " " * hSafezone + drawingLine[max(start,-hOffset):end + 1] + " " * hSafezone + line[hOffset + end + 1 + hSafezone:]
-            lines[vOffset + i] = lines[vOffset + i][:len(line)]
-
-        return generalFunctions.joinListToString(lines, sep="\n")
     
     def renderBottomWhite(self):
         res = ""
@@ -155,7 +85,7 @@ class PieceRenderer:
     #   bottomColor (str) - one of: white, black
     def renderPiece(self, piece, bottomColor):
         raw = self.renderPieceRaw(piece)
-        stripped = self.stripDrawing(raw)
+        stripped = drawingTools.stripDrawing(raw)
 
         if stripped == "":
             width, height = 0, 0
@@ -166,5 +96,5 @@ class PieceRenderer:
         hOffset = (self.cellWidth - width) // 2
         vOffset = self.cellHeight - height
 
-        cell = self.addDrawingToBottom(stripped, self.renderBottomWhite() if bottomColor == "white" else self.renderBottomBlack(), hSafezone=1, hOffset=hOffset, vOffset=vOffset)
+        cell = drawingTools.addDrawingToBottom(stripped, self.renderBottomWhite() if bottomColor == "white" else self.renderBottomBlack(), hSafezone=1, hOffset=hOffset, vOffset=vOffset)
         return cell
