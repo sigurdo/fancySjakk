@@ -5,11 +5,10 @@ import generalFunctions
 import fenReader
 
 class BoardDrawer:
-    pieceTextWidgets = []
-    letterTextWidgets = []
-    numberTextWidgets = []
-
     def __init__(self):
+        self.pieceTextWidgets = []
+        self.letterTextWidgets = []
+        self.numberTextWidgets = []
         self.pieceRenderer = PieceRenderer.PieceRenderer(16, 7)
 
         # Create piece widgets

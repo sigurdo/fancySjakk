@@ -6,6 +6,7 @@ from importSettings import settings
 import time
 import generalFunctions
 import drawingTools
+import ChessGame
 
 parser = argparse.ArgumentParser(description="Fancy sjakk")
 # parser.add_argument("--dahlspath", metavar="dahlspath", type=str, default="dahls.txt")
@@ -41,13 +42,13 @@ class Menu:
             ("title", "", ""),
         ]
 
-        button1 = urwid.Button("Start spill")
+        button1 = urwid.Button("Start spill", on_press=self.startGame)
         button1 = urwid.AttrMap(button1, "normal", "highlight")
         button2 = urwid.Button("Hjelp")
         button2 = urwid.AttrMap(button2, "normal", "highlight")
         # button3 = FigletButton("Hmmj", self.userInputEnter)
         # button3 = urwid.AttrMap(button3, "normal", "highlightBorder")
-        button3 = urwid.Button("Avslutt")
+        button3 = urwid.Button("Avslutt", on_press=self.exitApp)
         button3 = urwid.AttrMap(button3, "normal", "highlight")
         pile = urwid.Pile([button1, button2, button3])
         self.topWidget = urwid.Filler(pile, valign=urwid.TOP)
@@ -97,6 +98,20 @@ class Menu:
         # self.stockfish.set_position([text])
         # self.boardDrawer.setPieces(self.stockfish.get_fen_position())
         pass
+
+    def exitApp(self, widget):
+        raise urwid.ExitMainLoop()
+
+    def exitGame(self):
+        # raise urwid.ExitMainLoop()
+        self.loop.widget = self.topWidget
+        self.loop.unhandled_input = self.unhandled_input
+    
+    def startGame(self, widget):
+        game = ChessGame.ChessGame(self.loop.draw_screen, self.exitGame)
+        self.loop.widget = game.topWidget
+        self.loop.unhandled_input = game.unhandled_input
+
 
 menu = Menu()
 menu.start()
