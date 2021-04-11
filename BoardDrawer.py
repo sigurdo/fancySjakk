@@ -6,6 +6,7 @@ import fenReader
 
 class BoardDrawer:
     pieceTextWidgets = []
+    pieceTextAttrMaps = []
     letterTextWidgets = []
     numberTextWidgets = []
 
@@ -15,15 +16,20 @@ class BoardDrawer:
         # Create piece widgets
         for i in range(8):
             self.pieceTextWidgets.append([])
+            self.pieceTextAttrMaps.append([])
             for j in range(8):
                 field = urwid.Text("")
 
                 # Sette bakgrunnsfarger:
-                tomTxtW = self.pieceRenderer.renderBottomWhite()
-                tomTxtB = self.pieceRenderer.renderBottomBlack()
-                field.set_text(tomTxtW if (i + j) % 2 == 0 else tomTxtB)
+                # tomTxtW = self.pieceRenderer.renderBottomWhite()
+                # tomTxtB = self.pieceRenderer.renderBottomBlack()
+                # field.set_text(tomTxtW if (i + j) % 2 == 0 else tomTxtB)
 
                 self.pieceTextWidgets[i].append(field)
+
+                attrMap = urwid.AttrMap(field, "whiteCell" if (i + j) % 2 == 0 else "blackCell")
+                
+                self.pieceTextAttrMaps[i].append(attrMap)
 
         # Create letter widgets
         for i in range(1, 9):
@@ -39,8 +45,8 @@ class BoardDrawer:
 
         # Place widgets in piles and columns
         widgetRows = []
-        for i in range(len(self.pieceTextWidgets)):
-            row = self.pieceTextWidgets[i].copy()
+        for i in range(len(self.pieceTextAttrMaps)):
+            row = self.pieceTextAttrMaps[i].copy()
             row.insert(0, self.numberTextWidgets[i])
             row.append(self.numberTextWidgets[i])
             widgetRows.append(urwid.Columns(row))

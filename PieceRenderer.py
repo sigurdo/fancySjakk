@@ -84,6 +84,14 @@ class PieceRenderer:
     #   piece (str) - one of: r, n, b, q, k, p, R, N, B, Q, K, P
     #   bottomColor (str) - one of: white, black
     def renderPiece(self, piece, bottomColor):
+        # raise Exception(bottomColor)
+        if (bottomColor == "white") == (piece == piece.upper()):
+            piece = piece.lower()
+        else:
+            piece = piece.upper()
+
+        bottomColor = "black"
+
         raw = self.renderPieceRaw(piece)
         stripped = drawingTools.stripDrawing(raw)
 

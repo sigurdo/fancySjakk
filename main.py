@@ -44,7 +44,12 @@ class ChessGame:
         columns = urwid.Columns([(10 * 16, self.boardDrawer.topWidget), logInputPile])
         self.topWidget = urwid.Filler(columns, height=("relative", 100))
 
-        self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input, screen=urwid.curses_display.Screen())
+        self.palette = [
+            ("whiteCell", "black", "light gray"),
+            ("blackCell", "", "black"),
+        ]
+
+        self.loop = urwid.MainLoop(self.topWidget, unhandled_input=self.unhandled_input, screen=urwid.curses_display.Screen(), palette=self.palette)
 
     def start(self):
         self.loop.run()
